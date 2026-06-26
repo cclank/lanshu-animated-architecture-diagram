@@ -60,10 +60,10 @@ Place this folder in your Codex skills directory:
 ~/.codex/skills/lanshu-animated-architecture-diagram
 ```
 
-In this repo, the installed skill path is:
+Typical local install path:
 
 ```bash
-/Users/lank/.codex/skills/lanshu-animated-architecture-diagram
+${CODEX_HOME:-$HOME/.codex}/skills/lanshu-animated-architecture-diagram
 ```
 
 ## Use With Codex
@@ -139,8 +139,8 @@ For details, see [references/spec-format.md](./references/spec-format.md).
 Validate the skill structure:
 
 ```bash
-python3 /Users/lank/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
-  /Users/lank/.codex/skills/lanshu-animated-architecture-diagram
+python3 ${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py \
+  ${CODEX_HOME:-$HOME/.codex}/skills/lanshu-animated-architecture-diagram
 ```
 
 Validate GIF media parameters:
