@@ -91,6 +91,73 @@ def text_size(draw, text, font, spacing=3):
     return box[2] - box[0], box[3] - box[1]
 
 
+def wrap_token(draw, token, font, max_width):
+    if not token:
+        return [token]
+    parts = []
+    current = ""
+    for char in token:
+        candidate = current + char
+        if current and text_size(draw, candidate, font)[0] > max_width:
+            parts.append(current)
+            current = char
+        else:
+            current = candidate
+    if current:
+        parts.append(current)
+    return parts
+
+
+def wrap_line(draw, line, font, max_width):
+    if not line:
+        return [line]
+    tokens = list(line) if has_cjk(line) else line.split(" ")
+    separator = "" if has_cjk(line) else " "
+    lines = []
+    current = ""
+    for token in tokens:
+        candidate = token if not current else current + separator + token
+        if text_size(draw, candidate, font)[0] <= max_width:
+            current = candidate
+            continue
+        if current:
+            lines.append(current)
+        if text_size(draw, token, font)[0] <= max_width:
+            current = token
+        else:
+            split_parts = wrap_token(draw, token, font, max_width)
+            lines.extend(split_parts[:-1])
+            current = split_parts[-1] if split_parts else ""
+    if current:
+        lines.append(current)
+    return lines
+
+
+def wrap_text(draw, text, font, max_width):
+    lines = []
+    for raw_line in str(text).splitlines() or [""]:
+        lines.extend(wrap_line(draw, raw_line, font, max_width))
+    return "\n".join(lines)
+
+
+def fit_text(draw, text, w, h, size, min_size=10, hand=False, bold=False, spacing=3, wrap=True):
+    max_width = c(w)
+    max_height = c(h)
+    for candidate_size in range(int(size), int(min_size) - 1, -1):
+        candidate_font = load_font(candidate_size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
+        candidate_text = wrap_text(draw, text, candidate_font, max_width) if wrap else str(text)
+        tw, th = text_size(draw, candidate_text, candidate_font, spacing=spacing)
+        if tw <= max_width and th <= max_height:
+            return candidate_text, candidate_size, candidate_font
+
+    fallback_font = load_font(min_size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
+    fallback_text = wrap_text(draw, text, fallback_font, max_width) if wrap else str(text)
+    lines = fallback_text.splitlines()
+    while len(lines) > 1 and text_size(draw, "\n".join(lines), fallback_font, spacing=spacing)[1] > max_height:
+        lines.pop()
+    return "\n".join(lines), min_size, fallback_font
+
+
 class Excal:
     def __init__(self, width, height):
         self.width = width
@@ -198,10 +265,13 @@ class Excal:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def draw_text(ex, draw, text, x, y, w, h, size, color=None, align="center", hand=False, bold=False, spacing=3):
+def draw_text(ex, draw, text, x, y, w, h, size, color=None, align="center", hand=False, bold=False, spacing=3, fit=False, min_size=10, wrap=True):
     color = color or THEME["white"]
+    if fit:
+        text, size, font = fit_text(draw, text, w, h, size, min_size=min_size, hand=hand, bold=bold, spacing=spacing, wrap=wrap)
+    else:
+        font = load_font(size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
     ex.text(text, x, y, w, h, size, color, align=align)
-    font = load_font(size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
     tw, th = text_size(draw, text, font, spacing=spacing)
     tx = c(x)
     if align == "center":
@@ -344,28 +414,28 @@ def small_input(ex, draw, x, y, item):
     kind = item.get("icon", "file")
     color = item.get("color", THEME["cyan"])
     icon(ex, draw, kind, x + 15, y + 1, color, 0.9)
-    draw_text(ex, draw, item.get("label", ""), x - 5, y + 43, 78, 19, 13, THEME["white"], "center")
+    draw_text(ex, draw, item.get("label", ""), x - 5, y + 42, 78, 24, 13, THEME["white"], "center", fit=True, min_size=9)
 
 
 def core_card(ex, draw, x, y, card):
     draw_rect(ex, draw, x, y, 260, 90, THEME["core_stroke"], THEME["blue_fill"], 2, 9)
     icon(ex, draw, card.get("icon", "file"), x + 14, y + 13, card.get("color", THEME["cyan"]))
-    draw_text(ex, draw, card.get("title", ""), x + 110, y + 11, 100, 28, 20, THEME["white"], "center", hand=True, bold=True)
-    draw_text(ex, draw, card.get("body", ""), x + 92, y + 42, 150, 38, 14, THEME["white"], "center", spacing=3)
+    draw_text(ex, draw, card.get("title", ""), x + 110, y + 11, 100, 28, 20, THEME["white"], "center", hand=True, bold=True, fit=True, min_size=15)
+    draw_text(ex, draw, card.get("body", ""), x + 92, y + 42, 150, 38, 14, THEME["white"], "center", spacing=3, fit=True, min_size=11)
 
 
 def mini_card(ex, draw, x, y, w, h, card, stroke, fill):
     draw_rect(ex, draw, x, y, w, h, stroke, fill, 2, 8)
     icon(ex, draw, card.get("icon", "file"), x + 10, y + 10, card.get("color", THEME["cyan"]))
-    draw_text(ex, draw, card.get("title", ""), x + 78, y + 12, 115, 24, 17, THEME["white"], "left", bold=True)
-    draw_text(ex, draw, card.get("body", ""), x + 78, y + 38, w - 92, h - 43, 12, THEME["white"], "left", spacing=3)
+    draw_text(ex, draw, card.get("title", ""), x + 78, y + 12, 115, 24, 17, THEME["white"], "left", bold=True, fit=True, min_size=12)
+    draw_text(ex, draw, card.get("body", ""), x + 78, y + 38, w - 92, h - 43, 12, THEME["white"], "left", spacing=3, fit=True, min_size=10)
 
 
 def pack_row(ex, draw, x, y, card):
     draw_rect(ex, draw, x, y, 228, 84, THEME["green"], "#04200f", 2, 8)
     icon(ex, draw, card.get("icon", "file"), x + 12, y + 10, card.get("color", THEME["cyan"]))
-    draw_text(ex, draw, card.get("title", ""), x + 86, y + 12, 120, 25, 17, THEME["white"], "center", bold=True)
-    draw_text(ex, draw, card.get("body", ""), x + 80, y + 42, 135, 30, 12, THEME["white"], "center", spacing=3)
+    draw_text(ex, draw, card.get("title", ""), x + 86, y + 12, 120, 25, 17, THEME["white"], "center", bold=True, fit=True, min_size=12)
+    draw_text(ex, draw, card.get("body", ""), x + 80, y + 42, 135, 30, 12, THEME["white"], "center", spacing=3, fit=True, min_size=10)
 
 
 def render_static(spec):
@@ -410,11 +480,11 @@ def render_static(spec):
 
     decision = spec.get("decision", {"title": "Ready?", "body": "safe, traced\nusable"})
     draw_diamond(ex, draw, 706, 508, 120, 120, THEME["green"], "#052515", 2)
-    draw_text(ex, draw, decision.get("title", "Ready?"), 728, 541, 78, 28, 20, THEME["white"], "center")
-    draw_text(ex, draw, decision.get("body", ""), 728, 568, 78, 38, 14, THEME["white"], "center")
+    draw_text(ex, draw, decision.get("title", "Ready?"), 728, 541, 78, 26, 20, THEME["white"], "center", fit=True, min_size=14)
+    draw_text(ex, draw, decision.get("body", ""), 728, 569, 78, 34, 14, THEME["white"], "center", fit=True, min_size=10)
     draw_rect(ex, draw, 1022, 527, 100, 94, THEME["core_stroke"], THEME["blue_fill"], 2, 9)
     icon(ex, draw, spec.get("output", {}).get("icon", "file"), 1035, 537, THEME["cyan"])
-    draw_text(ex, draw, spec.get("output", {}).get("label", "Report"), 1038, 588, 70, 24, 18, THEME["white"], "center", bold=True)
+    draw_text(ex, draw, spec.get("output", {}).get("label", "Report"), 1038, 588, 70, 24, 18, THEME["white"], "center", bold=True, fit=True, min_size=12)
     draw_line(ex, draw, [(826, 568), (1022, 568)], THEME["white"], 2, "solid", True)
     draw_text(ex, draw, "Yes", 900, 543, 45, 25, 15, THEME["white"], "center")
     draw_line(ex, draw, [(707, 568), (510, 568), (222, 568), (222, 456)], THEME["muted"], 2, "dashed", True)
@@ -441,16 +511,16 @@ def render_static(spec):
     while len(layer_cards) < 4:
         layer_cards.append({"title": "", "body": "", "icon": "file"})
     for x, card in zip([346, 486, 626, 766], layer_cards):
-        draw_rect(ex, draw, x, 827, 112, 126, THEME["purple"], "#17091d", 2, 8)
+        draw_rect(ex, draw, x, 827, 112, 142, THEME["purple"], "#17091d", 2, 8)
         icon(ex, draw, card.get("icon", "file"), x + 18, 840, card.get("color", THEME["cyan"]))
-        draw_text(ex, draw, card.get("title", ""), x + 10, 906, 92, 25, 18, THEME["white"], "center", bold=True)
-        draw_text(ex, draw, card.get("body", ""), x + 8, 931, 96, 30, 11, THEME["white"], "center", spacing=2)
+        draw_text(ex, draw, card.get("title", ""), x + 10, 910, 92, 25, 18, THEME["white"], "center", bold=True, fit=True, min_size=12)
+        draw_text(ex, draw, card.get("body", ""), x + 8, 936, 96, 28, 11, THEME["white"], "center", spacing=2, fit=True, min_size=8)
     draw_line(ex, draw, [(458, 890), (486, 890)], THEME["white"], 2, "solid", True)
     draw_line(ex, draw, [(598, 890), (626, 890)], THEME["white"], 2, "solid", True)
     draw_line(ex, draw, [(738, 890), (766, 890)], THEME["white"], 2, "solid", True)
     draw_rect(ex, draw, 491, 1010, 220, 50, THEME["purple"], THEME["archive_fill"], 2, 8)
-    draw_text(ex, draw, center.get("footer", "Redact + Dedup"), 528, 1017, 165, 33, 20, THEME["white"], "center", hand=True, bold=True)
-    draw_line(ex, draw, [(603, 953), (603, 1010)], THEME["muted"], 2, "dashed", True)
+    draw_text(ex, draw, center.get("footer", "Redact + Dedup"), 528, 1017, 165, 33, 20, THEME["white"], "center", hand=True, bold=True, fit=True, min_size=14)
+    draw_line(ex, draw, [(603, 969), (603, 1010)], THEME["muted"], 2, "dashed", True)
 
     right = spec.get("right_panel", {})
     draw_line(ex, draw, [(855, 890), (904, 890)], THEME["white"], 2, "solid", True)
