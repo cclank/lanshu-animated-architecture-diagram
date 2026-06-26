@@ -14,7 +14,9 @@ The renderer is optimized for a premium dark hand-drawn architecture/process dia
 6. Bottom right panel: final package/output cards
 7. Top right brand slot: dotted mark plus `signature`
 
-Keep the copy short. The renderer uses fixed art-directed positions, so long text will look cramped.
+Keep the copy short. The renderer uses fixed art-directed positions and applies
+basic text fitting in compact regions, but short labels still produce the best
+visual hierarchy.
 
 ## Recommended Copy Length
 
@@ -26,6 +28,23 @@ Keep the copy short. The renderer uses fixed art-directed positions, so long tex
 - Panel card title: 1 to 3 words
 - Panel card body: 1 to 2 short lines
 - Signature: short handle, such as `@岚叔`
+
+## Text Fitting
+
+The renderer automatically fits text in compact labels and cards by wrapping
+lines and reducing font size down to a readable minimum. This is intended as a
+safety net for labels, not as a replacement for concise copy.
+
+Text fitting is applied to:
+
+- Input labels
+- Core card titles and bodies
+- Decision diamond text
+- Bottom panel cards
+- Output and package labels
+
+Manual line breaks in the spec are preserved. English text wraps on spaces,
+while CJK text can wrap between characters when needed.
 
 ## Icons
 
