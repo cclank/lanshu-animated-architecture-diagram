@@ -3,6 +3,7 @@ import argparse
 import json
 import math
 import random
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
@@ -580,12 +581,13 @@ def write_outputs(spec, outdir, basename):
 
 
 def frame_diff_report(gif_path):
-    im = Image.open(gif_path)
-    picks = [0, max(1, im.n_frames // 4), max(2, im.n_frames // 2), max(3, 3 * im.n_frames // 4), im.n_frames - 1]
-    frames = []
-    for idx in picks:
-        im.seek(idx)
-        frames.append(im.convert("RGB"))
+    with Image.open(gif_path) as im:
+        picks = [0, max(1, im.n_frames // 4), max(2, im.n_frames // 2), max(3, 3 * im.n_frames // 4), im.n_frames - 1]
+        frames = []
+        for idx in picks:
+            im.seek(idx)
+            frames.append(im.convert("RGB"))
+        frame_count = im.n_frames
     diffs = []
     for left, right, a, b in zip(frames, frames[1:], picks, picks[1:]):
         diff = ImageChops.difference(left, right)
@@ -596,7 +598,71 @@ def frame_diff_report(gif_path):
             data = cropped.get_flattened_data() if hasattr(cropped, "get_flattened_data") else cropped.getdata()
             changed = sum(1 for px in data if px != (0, 0, 0))
         diffs.append({"from": a, "to": b, "changed_pixels": changed})
-    return {"frames": im.n_frames, "diffs": diffs}
+    return {"frames": frame_count, "diffs": diffs}
+
+
+def check_outputs(result, spec):
+    canvas = spec.get("canvas", {})
+    expected_width = canvas.get("width", DEFAULT_W)
+    expected_height = canvas.get("height", DEFAULT_H)
+    expected_frames = canvas.get("frames", DEFAULT_FRAMES)
+    expected_fps = canvas.get("fps", DEFAULT_FPS)
+
+    checks = []
+
+    gif_path = Path(result["gif"])
+    with Image.open(gif_path) as gif:
+        gif_width = gif.width
+        gif_height = gif.height
+        gif_frames = gif.n_frames
+        duration_ms = gif.info.get("duration")
+    actual_fps = round(1000 / duration_ms, 3) if duration_ms else None
+    checks.extend(
+        [
+            {"name": "gif_exists", "ok": gif_path.is_file()},
+            {"name": "gif_width", "ok": gif_width == expected_width, "expected": expected_width, "actual": gif_width},
+            {"name": "gif_height", "ok": gif_height == expected_height, "expected": expected_height, "actual": gif_height},
+            {"name": "gif_frames", "ok": gif_frames == expected_frames, "expected": expected_frames, "actual": gif_frames},
+            {"name": "gif_fps", "ok": duration_ms == int(1000 / expected_fps), "expected": expected_fps, "actual": actual_fps},
+        ]
+    )
+
+    diff_report = frame_diff_report(gif_path)
+    checks.append(
+        {
+            "name": "gif_has_motion",
+            "ok": any(item["changed_pixels"] > 0 for item in diff_report["diffs"]),
+            "diffs": diff_report["diffs"],
+        }
+    )
+
+    excalidraw_path = Path(result["excalidraw"])
+    excalidraw = json.loads(excalidraw_path.read_text(encoding="utf-8"))
+    elements = excalidraw.get("elements", [])
+    ids = [element.get("id") for element in elements]
+    text_elements = [element for element in elements if element.get("type") == "text"]
+    checks.extend(
+        [
+            {"name": "excalidraw_exists", "ok": excalidraw_path.is_file()},
+            {"name": "excalidraw_unique_ids", "ok": len(ids) == len(set(ids))},
+            {"name": "excalidraw_text_font_family", "ok": all(element.get("fontFamily") == 5 for element in text_elements)},
+            {"name": "excalidraw_files_empty", "ok": excalidraw.get("files") == {}},
+        ]
+    )
+
+    png_path = Path(result["png"])
+    with Image.open(png_path) as png:
+        png_width = png.width
+        png_height = png.height
+    checks.extend(
+        [
+            {"name": "png_exists", "ok": png_path.is_file()},
+            {"name": "png_width", "ok": png_width == expected_width, "expected": expected_width, "actual": png_width},
+            {"name": "png_height", "ok": png_height == expected_height, "expected": expected_height, "actual": png_height},
+        ]
+    )
+
+    return {"ok": all(check["ok"] for check in checks), "checks": checks}
 
 
 def main():
@@ -605,13 +671,18 @@ def main():
     parser.add_argument("--outdir", required=True, help="Output directory.")
     parser.add_argument("--basename", default="animated-diagram", help="Output basename.")
     parser.add_argument("--verify", action="store_true", help="Print frame-diff verification after rendering.")
+    parser.add_argument("--check", action="store_true", help="Validate PNG, GIF, and Excalidraw output contracts; exits nonzero on failure.")
     args = parser.parse_args()
 
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
     result = write_outputs(spec, Path(args.outdir), args.basename)
     if args.verify:
         result["verification"] = frame_diff_report(result["gif"])
+    if args.check:
+        result["checks"] = check_outputs(result, spec)
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if args.check and not result["checks"]["ok"]:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

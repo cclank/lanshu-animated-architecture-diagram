@@ -31,13 +31,14 @@ python /path/to/skill/scripts/render_animated_diagram.py \
   --spec /path/to/spec.json \
   --outdir /path/to/output-dir \
   --basename descriptive-name \
-  --verify
+  --verify \
+  --check
 ```
 
 4. Validate before delivery.
    - Confirm GIF dimensions, FPS, frame count, and duration with `ffprobe`.
-   - Use `--verify` output or a frame-diff script to prove the GIF is not static.
-   - Confirm `.excalidraw` JSON has unique IDs, text uses `fontFamily: 5`, and `files` is empty.
+   - Use `--verify` output or `--check` to prove the GIF is not static.
+   - Confirm `.excalidraw` JSON has unique IDs, text uses `fontFamily: 5`, and `files` is empty. `--check` validates these output contracts automatically.
    - Open the PNG preview visually and fix overlap, cramped text, or weak hierarchy.
 
 5. Deliver the three files.
@@ -83,7 +84,9 @@ python /path/to/skill/scripts/render_animated_diagram.py \
   --spec spec.json \
   --outdir outputs \
   --basename diagram \
-  --verify
+  --verify \
+  --check
 ```
 
 The `--verify` report should show nonzero changed pixels between sampled GIF frames.
+The `--check` report should return `"ok": true`; it exits nonzero on contract failures.

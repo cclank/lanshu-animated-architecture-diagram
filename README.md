@@ -95,10 +95,16 @@ python3 scripts/render_animated_diagram.py \
   --spec work/my-diagram-spec.json \
   --outdir outputs \
   --basename my-diagram \
-  --verify
+  --verify \
+  --check
 ```
 
 The `--verify` flag prints sampled frame differences. Nonzero changed pixels confirm that the GIF is genuinely animated.
+
+The `--check` flag validates the generated PNG, GIF, and Excalidraw output
+contract and exits nonzero if a required property fails. It checks dimensions,
+GIF frame count and frame duration, sampled GIF motion, unique Excalidraw IDs,
+text font family, and that no external files are embedded.
 
 ## Spec Structure
 
@@ -159,7 +165,8 @@ python3 scripts/render_animated_diagram.py \
   --spec assets/default-spec.json \
   --outdir outputs \
   --basename sample \
-  --verify
+  --verify \
+  --check
 ```
 
 ## Dependencies
