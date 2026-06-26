@@ -32,8 +32,9 @@ visual hierarchy.
 ## Text Fitting
 
 The renderer automatically fits text in compact labels and cards by wrapping
-lines and reducing font size down to a readable minimum. This is intended as a
-safety net for labels, not as a replacement for concise copy.
+lines and reducing font size. When a label is still too tight, it may use a
+smaller emergency size to preserve the full text. This is intended as a safety
+net for labels, not as a replacement for concise copy.
 
 Text fitting is applied to:
 

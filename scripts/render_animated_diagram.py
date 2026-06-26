@@ -140,22 +140,36 @@ def wrap_text(draw, text, font, max_width):
     return "\n".join(lines)
 
 
+EMERGENCY_MIN_TEXT_SIZE = 6
+
+
+def text_variants(draw, text, font, max_width, wrap):
+    raw = str(text)
+    if not wrap:
+        return [raw]
+    wrapped = wrap_text(draw, raw, font, max_width)
+    if wrapped == raw:
+        return [wrapped]
+    return [wrapped, raw]
+
+
 def fit_text(draw, text, w, h, size, min_size=10, hand=False, bold=False, spacing=3, wrap=True):
+    raw_text = str(text)
+    has_cjk_text = has_cjk(raw_text)
     max_width = c(w)
     max_height = c(h)
-    for candidate_size in range(int(size), int(min_size) - 1, -1):
-        candidate_font = load_font(candidate_size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
-        candidate_text = wrap_text(draw, text, candidate_font, max_width) if wrap else str(text)
-        tw, th = text_size(draw, candidate_text, candidate_font, spacing=spacing)
-        if tw <= max_width and th <= max_height:
-            return candidate_text, candidate_size, candidate_font
+    start_size = int(size)
+    emergency_min = min(start_size, int(min_size), EMERGENCY_MIN_TEXT_SIZE)
+    for candidate_size in range(start_size, emergency_min - 1, -1):
+        candidate_font = load_font(candidate_size, hand=hand and not has_cjk_text, cjk=has_cjk_text, bold=bold)
+        for candidate_text in text_variants(draw, raw_text, candidate_font, max_width, wrap):
+            tw, th = text_size(draw, candidate_text, candidate_font, spacing=spacing)
+            if tw <= max_width and th <= max_height:
+                return candidate_text, candidate_size, candidate_font
 
-    fallback_font = load_font(min_size, hand=hand and not has_cjk(text), cjk=has_cjk(text), bold=bold)
-    fallback_text = wrap_text(draw, text, fallback_font, max_width) if wrap else str(text)
-    lines = fallback_text.splitlines()
-    while len(lines) > 1 and text_size(draw, "\n".join(lines), fallback_font, spacing=spacing)[1] > max_height:
-        lines.pop()
-    return "\n".join(lines), min_size, fallback_font
+    fallback_font = load_font(emergency_min, hand=hand and not has_cjk_text, cjk=has_cjk_text, bold=bold)
+    fallback_text = wrap_text(draw, raw_text, fallback_font, max_width) if wrap else raw_text
+    return fallback_text, emergency_min, fallback_font
 
 
 class Excal:

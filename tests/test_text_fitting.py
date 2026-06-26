@@ -57,6 +57,39 @@ class TextFittingTest(unittest.TestCase):
         self.assertLessEqual(height, self.renderer.c(48))
         self.assertIn("\n", text)
 
+    def test_preserves_words_when_label_height_is_tight(self):
+        text, size, font = self.renderer.fit_text(
+            self.draw,
+            "Discover Evidence",
+            100,
+            28,
+            20,
+            min_size=15,
+            hand=True,
+            bold=True,
+        )
+
+        width, height = self.renderer.text_size(self.draw, text, font)
+        self.assertLessEqual(width, self.renderer.c(100))
+        self.assertLessEqual(height, self.renderer.c(28))
+        self.assertLess(size, 15)
+        self.assertIn("Discover", text)
+        self.assertIn("Evidence", text)
+
+    def test_preserves_all_text_when_fitting_is_impossible(self):
+        text, _, _ = self.renderer.fit_text(
+            self.draw,
+            "alpha beta gamma delta epsilon",
+            30,
+            8,
+            16,
+            min_size=12,
+        )
+
+        flattened = text.replace("\n", " ")
+        for word in ["alpha", "beta", "gamma", "delta", "epsilon"]:
+            self.assertIn(word, flattened)
+
     def test_render_writes_wrapped_text_to_excalidraw(self):
         spec = json.loads((ROOT / "assets" / "default-spec.json").read_text(encoding="utf-8"))
         spec["decision"]["body"] = "checkpoint confirmation required"
