@@ -209,11 +209,6 @@ def draw_text(ex, draw, text, x, y, w, h, size, color=None, align="center", hand
     elif align == "right":
         tx = c(x + w) - tw
     ty = c(y) + (c(h) - th) / 2
-    shadow_alpha = 145 if size >= 18 else 105
-    draw.multiline_text((tx + c(1), ty + c(1)), text, font=font, fill=(0, 0, 0, shadow_alpha), spacing=c(spacing), align=align)
-    if hand and not has_cjk(text):
-        draw.multiline_text((tx - c(1), ty), text, font=font, fill=hex_rgba(THEME["purple"], 70), spacing=c(spacing), align=align)
-        draw.multiline_text((tx + c(1), ty), text, font=font, fill=hex_rgba(THEME["cyan"], 55), spacing=c(spacing), align=align)
     draw.multiline_text((tx, ty), text, font=font, fill=hex_rgba(color), spacing=c(spacing), align=align)
 
 
@@ -231,8 +226,6 @@ def draw_line(ex, draw, points, stroke, width=2, style="solid", arrow=False):
     ex.line(points, stroke, width, style, arrow)
     scaled = [(c(x), c(y)) for x, y in points]
     if style == "solid":
-        if width <= 2:
-            draw.line([(px + c(0.65), py + c(0.45)) for px, py in scaled], fill=hex_rgba(stroke, 80), width=max(1, c(width)), joint="curve")
         draw.line(scaled, fill=hex_rgba(stroke), width=max(1, c(width)), joint="curve")
     else:
         total = path_len(points)
@@ -479,19 +472,6 @@ def render_static(spec):
 def premium_finish(base):
     width, height = base.size
     img = base.convert("RGBA")
-    ambient = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    ad = ImageDraw.Draw(ambient)
-    for box, color, alpha in [
-        ((560, -10, 1040, 145), THEME["green"], 58),
-        ((25, 265, 1175, 670), THEME["core_stroke"], 32),
-        ((300, 700, 885, 1105), THEME["purple"], 34),
-        ((0, 710, 350, 1110), THEME["green"], 32),
-        ((880, 710, 1195, 1110), THEME["green"], 30),
-        ((70, 0, 520, 150), THEME["purple"], 24),
-    ]:
-        ad.ellipse(box, fill=hex_rgba(color, alpha))
-    img.alpha_composite(ambient.filter(ImageFilter.GaussianBlur(30)))
-
     glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     g = ImageDraw.Draw(glow)
     for rect, color, line_width in [
@@ -532,47 +512,17 @@ def premium_finish(base):
 
 
 def draw_glow_dot(draw, x, y, color, strength=1.0):
-    for radius, alpha in [(22, 25), (15, 42), (10, 70), (5, 210)]:
+    for radius, alpha in [(15, 42), (10, 70), (5, 210)]:
         a = int(alpha * strength)
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=hex_rgba(color, a))
-    draw.ellipse((x - 7, y - 7, x + 7, y + 7), outline=hex_rgba(color, int(125 * strength)), width=1)
     draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=hex_rgba(THEME["white"], 245))
-
-
-def draw_flow_streak(draw, points, t, color, strength=1.0):
-    for span, width, alpha in [(0.075, 9, 32), (0.048, 5, 88), (0.026, 3, 165)]:
-        start = point_at_fraction(points, t - span)
-        end = point_at_fraction(points, t + span * 0.25)
-        draw.line(
-            [(int(round(start[0])), int(round(start[1]))), (int(round(end[0])), int(round(end[1])))],
-            fill=hex_rgba(color, int(alpha * strength)),
-            width=width,
-        )
-
-
-def sweep_rect(overlay, rect, color, phase):
-    x1, y1, x2, y2 = rect
-    width = x2 - x1
-    height = y2 - y1
-    band = Image.new("RGBA", overlay.size, (0, 0, 0, 0))
-    bd = ImageDraw.Draw(band)
-    center = x1 - 110 + (phase % 1.0) * (width + 220)
-    poly = [
-        (center - 35, y1 - 18),
-        (center + 22, y1 - 18),
-        (center + 88, y2 + 18),
-        (center + 30, y2 + 18),
-    ]
-    bd.polygon(poly, fill=hex_rgba(color, 34))
-    bd.line((center - 5, y1, center + 52, y2), fill=hex_rgba(THEME["white"], 28), width=max(2, int(height * 0.018)))
-    overlay.alpha_composite(band.filter(ImageFilter.GaussianBlur(5)))
 
 
 def pulse_rect(draw, rect, color, phase, radius=10):
     x1, y1, x2, y2 = rect
-    alpha = int(85 + 80 * (0.5 + 0.5 * math.sin(phase)))
-    for grow, width in [(0, 3), (5, 2), (10, 2), (18, 1)]:
-        draw.rounded_rectangle((x1 - grow, y1 - grow, x2 + grow, y2 + grow), radius=radius + grow, outline=hex_rgba(color, max(18, alpha - grow * 7)), width=width)
+    alpha = int(70 + 70 * (0.5 + 0.5 * math.sin(phase)))
+    for grow, width in [(0, 2), (4, 2), (8, 1)]:
+        draw.rounded_rectangle((x1 - grow, y1 - grow, x2 + grow, y2 + grow), radius=radius + grow, outline=hex_rgba(color, max(25, alpha - grow * 8)), width=width)
 
 
 def animate_frame(base, idx, total):
@@ -594,10 +544,8 @@ def animate_frame(base, idx, total):
         ([(1036, 735), (1036, 691), (766, 691), (766, 628)], THEME["amber"], 0.72),
     ]
     for points, color, offset in paths:
-        phase = progress + offset
-        draw_flow_streak(draw, points, phase, color, 0.95)
         for trail, strength in [(0, 1.0), (-0.035, 0.72), (-0.07, 0.44)]:
-            x, y = point_at_fraction(points, phase + trail)
+            x, y = point_at_fraction(points, progress + offset + trail)
             draw_glow_dot(draw, x, y, color, strength)
     pulse_targets = [
         ((389, 138, 819, 239), THEME["green"]),
@@ -611,7 +559,6 @@ def animate_frame(base, idx, total):
     active = (idx // 6) % len(pulse_targets)
     for pos, (rect, color) in enumerate(pulse_targets):
         if pos == active:
-            sweep_rect(overlay, rect, color, progress + pos * 0.17)
             pulse_rect(draw, rect, color, progress * math.tau * 2, 12)
     frame.alpha_composite(overlay)
     return frame.convert("RGB")
