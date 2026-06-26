@@ -1,4 +1,8 @@
+<div align="center">
+
 # Lanshu Animated Architecture Diagram
+
+**岚叔动态架构图: premium hand-drawn animated architecture diagrams for articles, systems, and workflows.**
 
 [![Codex Skill](https://img.shields.io/badge/Codex-Skill-22C86F?style=for-the-badge)](./SKILL.md)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -7,21 +11,38 @@
 [![Animated GIF](https://img.shields.io/badge/Animated-GIF-FFB000?style=for-the-badge)](./scripts/render_animated_diagram.py)
 [![License](https://img.shields.io/badge/License-MIT-111827?style=for-the-badge)](./LICENSE)
 
-`lanshu-animated-architecture-diagram` is a Codex skill and local renderer for creating premium hand-drawn architecture diagrams as editable Excalidraw files, static PNG previews, and genuinely animated GIFs.
+`JSON spec` -> `.excalidraw` + `.png` + animated `.gif`
+
+</div>
+
+<p align="center">
+  <a href="#gallery">Gallery</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#spec-structure">Spec</a> ·
+  <a href="#verification">Verification</a>
+</p>
+
+`lanshu-animated-architecture-diagram` is a Codex skill and local renderer for creating premium black-canvas technical diagrams with hand-drawn typography, editable Excalidraw output, static PNG previews, and genuinely animated GIFs.
 
 It is designed for article explanations, system architecture diagrams, process diagrams, and DailyDoseOfDS-style black-background technical sketches.
 
-## Preview
+## Gallery
 
-The default template renders a dark hand-drawn architecture diagram with moving flow highlights, pulsing modules, subtle grain, vignette, and a top-right hand-drawn signature.
+The default visual system uses a dark canvas, moving flow highlights, pulsing modules, subtle grain, vignette, and a top-right hand-drawn signature.
 
-### Claude Loops
-
-![Claude Loops animated architecture diagram](./assets/previews/claude-loops.gif)
-
-### Memory Pack
-
-![Memory Pack animated architecture diagram](./assets/previews/memory-pack.gif)
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <strong>Claude Loops</strong><br />
+      <img src="./assets/previews/claude-loops.gif" alt="Claude Loops animated architecture diagram" width="100%" />
+    </td>
+    <td width="50%" align="center">
+      <strong>Memory Pack</strong><br />
+      <img src="./assets/previews/memory-pack.gif" alt="Memory Pack animated architecture diagram" width="100%" />
+    </td>
+  </tr>
+</table>
 
 ## Features
 
@@ -50,6 +71,19 @@ The default canvas is:
 20 fps
 41 frames
 2.05 seconds
+```
+
+## Quick Start
+
+```bash
+git clone https://github.com/cclank/lanshu-animated-architecture-diagram.git
+cd lanshu-animated-architecture-diagram
+python3 -m pip install -r requirements.txt
+python3 scripts/render_animated_diagram.py \
+  --spec assets/default-spec.json \
+  --outdir outputs \
+  --basename sample \
+  --verify
 ```
 
 ## Installation
