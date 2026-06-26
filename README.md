@@ -66,6 +66,12 @@ Typical local install path:
 ${CODEX_HOME:-$HOME/.codex}/skills/lanshu-animated-architecture-diagram
 ```
 
+Install the runtime dependency:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
 ## Use With Codex
 
 Invoke the skill by name:
@@ -167,7 +173,13 @@ python3 scripts/render_animated_diagram.py \
 Required:
 
 - Python 3.9+
-- Pillow
+- Pillow 10.0.0+
+
+Install Python packages with:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
 
 Optional:
 
@@ -181,6 +193,7 @@ lanshu-animated-architecture-diagram/
 ├── SKILL.md
 ├── README.md
 ├── LICENSE
+├── requirements.txt
 ├── agents/
 │   └── openai.yaml
 ├── assets/
