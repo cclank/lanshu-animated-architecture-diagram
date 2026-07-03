@@ -52,8 +52,12 @@ def scaled_box(x, y, w, h):
 
 
 def font_candidates(hand=False, cjk=False, bold=False):
+    # Linux font fallbacks are tried first so the renderer works off macOS.
+    # The original macOS paths are kept as a secondary tier.
     if hand:
         return [
+            "/usr/share/fonts/truetype/freefont/FreeSansBoldOblique.ttf",
+            "/usr/share/fonts/truetype/ubuntu/Ubuntu-Italic[wdth,wght].ttf",
             "/System/Library/Fonts/Supplemental/Chalkduster.ttf",
             "/System/Library/Fonts/MarkerFelt.ttc",
             "/System/Library/Fonts/Noteworthy.ttc",
@@ -61,12 +65,17 @@ def font_candidates(hand=False, cjk=False, bold=False):
         ]
     if cjk:
         return [
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
             "/System/Library/Fonts/STHeiti Medium.ttc" if bold else "/System/Library/Fonts/STHeiti Light.ttc",
             "/System/Library/Fonts/Hiragino Sans GB.ttc",
             "/Library/Fonts/Arial Unicode.ttf",
             "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
         ]
     return [
+        "/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
         "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
     ]
